@@ -1,0 +1,60 @@
+diff --git a/src/configs/sub/GroupUpdater.cpp b/src/configs/sub/GroupUpdater.cpp
+index 0b906712..0ae31f2b 100644
+--- a/src/configs/sub/GroupUpdater.cpp
++++ b/src/configs/sub/GroupUpdater.cpp
+@@ -5,6 +5,7 @@
+ #include "include/configs/sub/SubscriptionParser.hpp"
+ #include "include/configs/sub/SubscriptionReconcile.hpp"
+ #include "include/configs/sub/SubscriptionScan.hpp"
++#include "include/configs/sub/ServerFilter.hpp"
+ #include "include/database/GroupsRepo.h"
+ #include "include/database/ProfilesRepo.h"
+ #include "include/engine/EngineEvents.h"
+@@ -198,9 +199,12 @@ namespace Subscription {
+             QList<qsizetype> entryIndex;
+         };
+ 
+-        ParseSink sinkFor(ImportSink &sink, ImportReport &report) {
++        ParseSink sinkFor(ImportSink &sink, ImportReport &report, const QList<ServerFilter::Rule> &filterRules = {}) {
+             ParseSink parseSink;
+-            parseSink.profile = [&sink](std::shared_ptr<Configs::Profile> ent) { sink.add(std::move(ent)); };
++            parseSink.profile = [&sink, filterRules](std::shared_ptr<Configs::Profile> ent) {
++                if (ServerFilter::matches(ent, filterRules)) return;
++                sink.add(std::move(ent));
++            };
+             parseSink.report = [&report](const ParseReport &item) { report.add(item); };
+             return parseSink;
+         }
+@@ -385,7 +389,8 @@ namespace Subscription {
+ 
+         // Each profile is listed under the first enabled action that claims it.
+         DeleteOutcome removeFlagged(const QList<int> &ids, const Configs::SubscriptionOptions &options, QString &report) {
+-            if (!options.remove_duplicates && !options.remove_insecure && !options.remove_invalid) return {true, {}, {}};
++            const QList<ServerFilter::Rule> filterRules = ServerFilter::compile(options.server_filter);
++            if (!options.remove_duplicates && !options.remove_insecure && !options.remove_invalid && filterRules.isEmpty()) return {true, {}, {}};
+             QList<std::shared_ptr<Configs::Profile>> profiles;
+             forEachProfile(ids, [&profiles](const std::shared_ptr<Configs::Profile> &ent) { profiles << ent; });
+ 
+@@ -431,6 +436,13 @@ namespace Subscription {
+                 }
+             }
+ 
++            if (!filterRules.isEmpty()) {
++                collect(QObject::tr("Removed %1 filtered profiles:"),
++                        [&filterRules](const std::shared_ptr<Configs::Profile> &ent) {
++                            return ServerFilter::matches(ent, filterRules);
++                        });
++            }
++
+             if (doomed.isEmpty()) return {true, {}, {}};
+             const auto outcome = deleteProfiles(doomed);
+             if (!outcome.ok) {
+@@ -1063,7 +1075,7 @@ namespace Subscription {
+         ImportReport report;
+ 
+         MW_show_log(">>>>>>>> " + QObject::tr("Processing subscription data..."));
+-        ParseDocument(std::move(body), sinkFor(sink, report));
++        ParseDocument(std::move(body), sinkFor(sink, report, ServerFilter::compile(options.server_filter)));
+         sink.flush();
+         MW_show_log(">>>>>>>> " + QObject::tr("Process complete, applying..."));
+         report.setImported(sink.stored());
