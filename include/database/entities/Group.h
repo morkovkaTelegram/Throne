@@ -108,6 +108,9 @@ namespace Configs
         // Follow-ups of url_test: ignored while it is off.
         bool remove_unavailable = false;
         bool sort_by_latency = false;
+        // Newline-separated patterns; profiles matching any are dropped on update.
+        // Supports plain text, wildcards (* ?), re:regex, /regex/i, and name:/type:/addr:/any: prefixes.
+        QString server_filter;
 
         [[nodiscard]] QJsonObject ToJson() const;
 
