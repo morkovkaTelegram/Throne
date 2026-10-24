@@ -86,6 +86,7 @@ namespace Configs
         if (url_test) json["url_test"] = true;
         if (remove_unavailable) json["remove_unavailable"] = true;
         if (sort_by_latency) json["sort_by_latency"] = true;
+        if (!server_filter.isEmpty()) json["server_filter"] = server_filter;
         return json;
     }
 
@@ -115,6 +116,7 @@ namespace Configs
         options.url_test = json["url_test"].toBool();
         options.remove_unavailable = json["remove_unavailable"].toBool();
         options.sort_by_latency = json["sort_by_latency"].toBool();
+        options.server_filter = json["server_filter"].toString();
         return options;
     }
 
@@ -160,7 +162,6 @@ namespace Configs
             }
         }
 
-        // Fields a method leaves unset stay equal, so one comparison serves every method.
         struct SortKey {
             bool missing = false;
             int level = 0;
@@ -215,7 +216,6 @@ namespace Configs
                 return key;
             }
 
-            // A profile that cannot be loaded goes last in either direction.
             [[nodiscard]] bool less(const SortKey &a, const SortKey &b) const {
                 if (a.missing != b.missing) return b.missing;
                 return descending ? ascending(b, a) : ascending(a, b);
@@ -252,10 +252,8 @@ namespace Configs
                 }
             }
 
-            // The id must be loaded already.
             [[nodiscard]] const SortKey &at(int id) const { return keys.constFind(id).value(); }
 
-            // A copy: loading one more key can rehash the table under a held reference.
             SortKey get(int id) {
                 load({id});
                 return at(id);
@@ -272,7 +270,6 @@ namespace Configs
 
         enum class Commit { Moved, Unchanged, Stale };
 
-        // The keys were read unlocked, so a change that landed meanwhile means sorting again.
         Commit commit(Group &group, const QList<int> &snapshot, GroupSortAction action, QList<int> order) {
             QMutexLocker locker(&group.mutex);
             if (group.profiles != snapshot || group.sort != action) return Commit::Stale;
@@ -314,7 +311,6 @@ namespace Configs
             const SortRule rule(*this, action);
             SortKeys keys(rule);
             keys.load(snapshot);
-            // Stable, so a re-sort leaves rows with equal keys where they were.
             QList<int> order = snapshot;
             std::ranges::stable_sort(order, [&keys](int a, int b) { return keys.less(a, b); });
 
@@ -346,7 +342,6 @@ namespace Configs
                 if (changedSet.contains(snapshot[i])) positions << i;
             }
             if (positions.isEmpty()) return false;
-            // A full sort loads each row once, a reinsertion about log2(n) rows one by one.
             const auto probes = static_cast<qsizetype>(std::bit_width(static_cast<quint64>(count))) + 4;
             if (positions.size() * probes >= count) return Resort();
 
@@ -359,14 +354,12 @@ namespace Configs
                 if (i + 1 < count) around << snapshot[i + 1];
             }
             keys.load(around);
-            // The rest was sorted before, so the whole list still is when every changed row fits its neighbours.
             const bool inPlace = std::ranges::all_of(positions, [&](qsizetype i) {
                 return (i == 0 || !keys.less(snapshot[i], snapshot[i - 1]))
                        && (i + 1 == count || !keys.less(snapshot[i + 1], snapshot[i]));
             });
             if (inPlace) return false;
 
-            // Lift every changed row, not just the misplaced ones: a fitting row's neighbour may be leaving too.
             QList<int> order;
             order.reserve(count);
             for (int id : snapshot) {
@@ -375,7 +368,6 @@ namespace Configs
             for (const auto i : positions) {
                 const int id = snapshot[i];
                 const auto key = keys.get(id);
-                // After equal keys, where a stable sort leaves a row that came last.
                 const auto at = std::upper_bound(order.cbegin(), order.cend(), key, [&](const SortKey &k, int other) {
                     return rule.less(k, keys.get(other));
                 });
