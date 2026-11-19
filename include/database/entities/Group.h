@@ -21,62 +21,24 @@ namespace Configs
         qint64 download = 0;
         qint64 total = 0;
         qint64 expire = 0;
-        QString title;
-        QString web_url;
-        QString support_url;
-        QString announce;
-        int server_interval = 0;
 
-        [[nodiscard]] qint64 used() const { return upload + download; }
-        [[nodiscard]] qint64 remaining() const { return (total > used()) ? (total - used()) : 0; }
-        [[nodiscard]] double percentUsed() const {
-            if (total <= 0) return 0.0;
-            return std::clamp((static_cast<double>(used()) / static_cast<double>(total)) * 100.0, 0.0, 100.0);
-        }
-        [[nodiscard]] bool isExpired() const {
-            if (expire <= 0) return false;
-            return QDateTime::currentSecsSinceEpoch() > expire;
-        }
+        [[nodiscard]] QString DisplayInfo() const;
 
-        [[nodiscard]] QJsonObject toJson() const;
-        static SubUserInfo fromJson(const QJsonObject &json);
+        void FromHeaderContent(const QString &header);
+
+        void FromClashYaml(const QByteArray &body);
+
+        [[nodiscard]] QJsonObject ToJson() const;
+
+        static SubUserInfo FromJson(const QJsonObject &json);
     };
 
-    SubUserInfo ParseSubUserInfo(const QString &info);
-
-    enum class testBy : int {
-        latency = 0,
-        dlSpeed,
-        ulSpeed,
-        ipOut
-    };
-
-    enum class testShowItems : int {
-        all = 0,
-        none,
-        ipOnly,
-        speedOnly
-    };
-
-    enum class trafficBy : int {
-        total = 0,
-        dl,
-        ul
-    };
-
-    enum class typeBy : int {
-        byType = 0,
-        bySecurity
-    };
-
-    // Doubles as the index of the Advanced dialog's send_hwid combo.
     enum class sendHwid : int {
         keepDefault = 0,
         on,
         off
     };
 
-    // Persisted as ints: append only.
     enum class subTlsVersion : int {
         automatic = 0,
         tls12,
@@ -109,7 +71,7 @@ namespace Configs
         // Follow-ups of url_test: ignored while it is off.
         bool remove_unavailable = false;
         bool sort_by_latency = false;
-        // Case-insensitive regexes on the profile name, applied as a fetch is parsed; the exclusion wins.
+        // name_filter: single regex to keep. name_exclude: multi-line flexible exclude (plain, wildcards, re:/regex/, prefixes name:/type:/addr:/any:).
         QString name_filter;
         QString name_exclude;
         // Subscription::FilterProtocols() ids.
@@ -148,80 +110,35 @@ namespace Configs
         SubUserInfo sub_info;
         qint64 sub_last_update = 0;
         SubscriptionOptions sub_options;
-        int front_proxy_id = -1;
-        int landing_proxy_id = -1;
-        // The routing profile this group's profiles are built with; -1 follows the global one.
-        int route_id = -1;
-        // Keep a routing profile from what the subscription ships (RouteProfile::source_gid names the group).
-        bool import_sub_route = false;
-        // Inherit (profiles keep their own addresses), Address or IpList.
         EndpointSource endpoint;
+        GroupSort order;
 
-        QList<int> column_width;
-        QList<int> calculated_column_width; // memory only, no need to save to db
-        QList<int> profiles;
-        // Always the head of `profiles`, in this order; sorts only order the rows below them.
-        QList<int> pinned;
-        int scroll_last_profile = -1;
-        testBy test_sort_by = testBy::latency;
-        trafficBy traffic_sort_by = trafficBy::total;
-        typeBy type_sort_by = typeBy::byType;
-        // The order the profiles are kept in as they change; Raw keeps the manual order.
-        GroupSortAction sort;
-        testShowItems test_items_to_show = testShowItems::all;
-        // Memory only. Pairs of (profileID, row as displayed).
-        QList<std::pair<int, int>> selectedProfilesIdIdxPairs;
-
-        Group() = default;
-
-        void clearCalculatedColumnWidth();
+        // Profiles currently in this group (ids).
+        QList<int> order_ids;
 
         [[nodiscard]] QList<int> Profiles() const;
 
-        [[nodiscard]] bool SortReads(SortInput input) const;
+        void SetProfiles(const QList<int> &ids);
 
-        [[nodiscard]] bool KeepsSorted() const;
+        void AddProfile(int id);
 
-        void SetSort(GroupSortAction action);
+        void RemoveProfile(int id);
 
-        // The sorts below load profiles, so call them off the UI thread. Each is true when the order moved.
+        [[nodiscard]] bool HasProfile(int id) const;
 
-        // Sorts by `action` and keeps the group sorted that way.
-        bool SortProfiles(GroupSortAction action);
+        [[nodiscard]] QJsonObject ToJson(const QList<int> &profiles = {}) const;
 
-        // Re-applies the kept sort to every unpinned row.
-        bool Resort();
+        static std::shared_ptr<Group> FromJson(const QJsonObject &object);
 
-        // Moves just the changed profiles into place; the rest must still be sorted. Falls back to Resort when many changed.
-        bool Reposition(const QList<int>& changed);
+        // After an update, when filters change the membership may need a re-sort.
+        void MarkSortDirty(SortInput input);
 
-        bool RemoveProfile(int ID);
+        [[nodiscard]] bool IsSortDirty(SortInput input) const;
 
-        bool RemoveProfileBatch(const QList<int>& IDs);
+        void ClearSortDirty();
 
-        bool AddProfile(int ID);
-
-        bool AddProfileBatch(const QList<int>& IDs);
-
-        // False for a swap across the pinned block's edge.
-        bool SwapProfiles(int idx1, int idx2);
-
-        [[nodiscard]] bool HasProfile(int ID) const;
-
-        [[nodiscard]] int PinnedCount() const;
-
-        [[nodiscard]] bool IsPinned(int ID) const;
-
-        // The unpinned ones of IDs join the end of the pinned block in list order; true when any was pinned.
-        bool PinProfiles(const QList<int>& IDs);
-
-        // The pinned ones of IDs lead the unpinned rows; returns them.
-        QList<int> UnpinProfiles(const QList<int>& IDs);
-
-        // Drops row `from` above or below `target`, pinned iff `target` is; landing among unpinned rows stops a kept sort. The new row, or -1.
-        int MoveProfile(int from, int target, bool below);
-
-        // Re-heads `profiles` with `pinned` after a wholesale rewrite, dropping pins of unlisted profiles; true when anything changed.
-        bool NormalizePins();
+    private:
+        mutable QList<int> profiles;
+        mutable int sort_dirty = 0;
     };
-}// namespace Configs
+}
