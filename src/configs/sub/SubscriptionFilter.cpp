@@ -10,7 +10,6 @@
 
 namespace Subscription {
     namespace {
-        // Two ASCII letters, upper-cased; empty otherwise.
         QString countryCode(const QString &item) {
             const auto code = item.trimmed().toUpper();
             if (code.size() != 2) return {};
@@ -20,7 +19,6 @@ namespace Subscription {
             return code == QLatin1String("UK") ? QStringLiteral("GB") : code;
         }
 
-        // Items in input order, with the drop marker kept.
         QList<std::pair<QString, bool>> countryItems(const QString &text, QStringList *problems) {
             QList<std::pair<QString, bool>> items;
             for (const auto &raw : text.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
@@ -178,7 +176,10 @@ namespace Subscription {
     QList<ExcludeRule> CompileExcludeRules(const QString &text, QStringList *problems) {
         QList<ExcludeRule> rules;
         int lineNo = 0;
-        for (const auto &raw : text.split(QLatin1Char('\n'))) {
+        // Newlines or | separate patterns so a single-line field still accepts several rules.
+        QString normalized = text;
+        normalized.replace(QLatin1Char('|'), QLatin1Char('\n'));
+        for (const auto &raw : normalized.split(QLatin1Char('\n'))) {
             ++lineNo;
             QString err;
             if (auto rule = compileExcludeLine(raw, &err)) {
