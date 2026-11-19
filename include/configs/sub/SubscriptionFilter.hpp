@@ -24,8 +24,11 @@ namespace Subscription {
 
     const QList<FilterProtocol> &FilterProtocols();
 
-    // Empty when the pattern compiles.
+    // Empty when the pattern compiles (single-line regex for Keep only matching).
     QString NamePatternProblem(const QString &pattern);
+
+    // Empty when every non-comment line of a flexible multi-line exclude is valid.
+    QString NameExcludeProblem(const QString &text);
 
     struct CountryRules {
         QSet<QString> keep;
@@ -46,6 +49,19 @@ namespace Subscription {
     // "HK,JP,!RU": upper-case, de-duplicated, keeps before drops.
     QString NormalizeCountryRules(const QString &text);
 
+    // One flexible exclude rule compiled from a line of name_exclude / server filter.
+    struct ExcludeRule {
+        enum class Field { Name, Type, Addr, Any };
+        Field field = Field::Name;
+        bool isRegex = false;
+        QString needle;
+        QRegularExpression regex;
+    };
+
+    // Compiles multi-line exclude text: plain substring, wildcards (* ?), re:regex, /regex/i,
+    // optional prefixes name: type: addr: any:. Lines starting with # are comments.
+    QList<ExcludeRule> CompileExcludeRules(const QString &text, QStringList *problems = nullptr);
+
     class ImportFilter {
     public:
         enum class Verdict { Keep, Name, Type, Country };
@@ -53,7 +69,9 @@ namespace Subscription {
         // A stored pattern that no longer compiles is skipped and reported in warnings(), never read as matching everything.
         explicit ImportFilter(const Configs::SubscriptionOptions &options);
 
-        [[nodiscard]] bool active() const { return hasNameFilter || hasNameExclude || !excludedTypes.isEmpty() || rules.active(); }
+        [[nodiscard]] bool active() const {
+            return hasNameFilter || !excludeRules.isEmpty() || !excludedTypes.isEmpty() || rules.active();
+        }
 
         [[nodiscard]] const CountryRules &countries() const { return rules; }
 
@@ -64,9 +82,8 @@ namespace Subscription {
 
     private:
         QRegularExpression nameFilter;
-        QRegularExpression nameExclude;
         bool hasNameFilter = false;
-        bool hasNameExclude = false;
+        QList<ExcludeRule> excludeRules;
         QSet<QString> excludedTypes;
         CountryRules rules;
         QStringList problems;
