@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 
 #include <algorithm>
+#include <optional>
 
 namespace Subscription {
     namespace {
@@ -35,6 +36,115 @@ namespace Subscription {
             }
             return items;
         }
+
+        QString wildcardToRegex(const QString &pattern) {
+            QString out;
+            out.reserve(pattern.size() * 2);
+            for (const QChar c : pattern) {
+                if (c == QLatin1Char('*')) out += QStringLiteral(".*");
+                else if (c == QLatin1Char('?')) out += QLatin1Char('.');
+                else out += QRegularExpression::escape(QString(c));
+            }
+            return out;
+        }
+
+        std::optional<ExcludeRule> compileExcludeLine(QString line, QString *error) {
+            line = line.trimmed();
+            if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) return std::nullopt;
+
+            ExcludeRule rule;
+            auto takePrefix = [&](const QString &prefix, ExcludeRule::Field field) {
+                if (!line.startsWith(prefix, Qt::CaseInsensitive)) return false;
+                rule.field = field;
+                line = line.mid(prefix.size()).trimmed();
+                return true;
+            };
+            if (!takePrefix(QStringLiteral("name:"), ExcludeRule::Field::Name)
+                && !takePrefix(QStringLiteral("type:"), ExcludeRule::Field::Type)
+                && !takePrefix(QStringLiteral("addr:"), ExcludeRule::Field::Addr)
+                && !takePrefix(QStringLiteral("server:"), ExcludeRule::Field::Addr)
+                && !takePrefix(QStringLiteral("any:"), ExcludeRule::Field::Any)) {
+                rule.field = ExcludeRule::Field::Name;
+            }
+            if (line.isEmpty()) {
+                if (error) *error = QCoreApplication::translate("Validation", "Empty pattern after prefix");
+                return std::nullopt;
+            }
+
+            if (line.startsWith(QStringLiteral("re:"), Qt::CaseInsensitive)) {
+                const QString pattern = line.mid(3);
+                if (pattern.isEmpty()) {
+                    if (error) *error = QCoreApplication::translate("Validation", "Empty regex after re:");
+                    return std::nullopt;
+                }
+                rule.isRegex = true;
+                rule.regex = QRegularExpression(pattern, QRegularExpression::CaseInsensitiveOption);
+                if (!rule.regex.isValid()) {
+                    if (error) *error = rule.regex.errorString();
+                    return std::nullopt;
+                }
+                return rule;
+            }
+
+            if (line.size() >= 2 && line.startsWith(QLatin1Char('/'))) {
+                const int last = line.lastIndexOf(QLatin1Char('/'));
+                if (last > 0) {
+                    const QString pattern = line.mid(1, last - 1);
+                    const QString flags = line.mid(last + 1);
+                    QRegularExpression::PatternOptions opts = QRegularExpression::NoPatternOption;
+                    if (flags.isEmpty() || flags.contains(QLatin1Char('i'))) {
+                        opts |= QRegularExpression::CaseInsensitiveOption;
+                    }
+                    rule.isRegex = true;
+                    rule.regex = QRegularExpression(pattern, opts);
+                    if (!rule.regex.isValid()) {
+                        if (error) *error = rule.regex.errorString();
+                        return std::nullopt;
+                    }
+                    return rule;
+                }
+            }
+
+            if (line.contains(QLatin1Char('*')) || line.contains(QLatin1Char('?'))) {
+                rule.isRegex = true;
+                rule.regex = QRegularExpression(QStringLiteral("^%1$").arg(wildcardToRegex(line)),
+                                                QRegularExpression::CaseInsensitiveOption);
+                if (!rule.regex.isValid()) {
+                    if (error) *error = rule.regex.errorString();
+                    return std::nullopt;
+                }
+                return rule;
+            }
+
+            rule.needle = line;
+            return rule;
+        }
+
+        bool textMatches(const QString &text, const ExcludeRule &rule) {
+            if (text.isEmpty() && rule.field != ExcludeRule::Field::Any) return false;
+            if (rule.isRegex) return rule.regex.match(text).hasMatch();
+            return text.contains(rule.needle, Qt::CaseInsensitive);
+        }
+
+        bool profileMatchesExclude(const Configs::Profile &ent, const ExcludeRule &rule) {
+            const QString name = ent.outbound != nullptr ? ent.outbound->DisplayName() : ent.name;
+            const QString type = ent.type;
+            const QString addr = ent.outbound != nullptr ? ent.outbound->server : QString();
+            switch (rule.field) {
+                case ExcludeRule::Field::Name:
+                    return textMatches(name, rule) || (ent.outbound != nullptr && textMatches(ent.outbound->name, rule));
+                case ExcludeRule::Field::Type:
+                    return textMatches(type, rule);
+                case ExcludeRule::Field::Addr:
+                    return textMatches(addr, rule);
+                case ExcludeRule::Field::Any:
+                    return textMatches(name, rule)
+                           || (ent.outbound != nullptr && textMatches(ent.outbound->name, rule))
+                           || textMatches(type, rule)
+                           || textMatches(addr, rule);
+            }
+            return false;
+        }
     }
 
     const QList<FilterProtocol> &FilterProtocols() {
@@ -63,6 +173,28 @@ namespace Subscription {
         return QCoreApplication::translate("Validation", "Not a valid regular expression: %1 (at character %2).")
             .arg(regex.errorString())
             .arg(leading + regex.patternErrorOffset() + 1);
+    }
+
+    QList<ExcludeRule> CompileExcludeRules(const QString &text, QStringList *problems) {
+        QList<ExcludeRule> rules;
+        int lineNo = 0;
+        for (const auto &raw : text.split(QLatin1Char('\n'))) {
+            ++lineNo;
+            QString err;
+            if (auto rule = compileExcludeLine(raw, &err)) {
+                rules.append(std::move(*rule));
+            } else if (!err.isEmpty() && problems != nullptr) {
+                *problems << QCoreApplication::translate("Validation", "Line %1: %2").arg(lineNo).arg(err);
+            }
+        }
+        return rules;
+    }
+
+    QString NameExcludeProblem(const QString &text) {
+        QStringList problems;
+        CompileExcludeRules(text, &problems);
+        if (problems.isEmpty()) return {};
+        return problems.join(QStringLiteral("; "));
     }
 
     bool CountryRules::accepts(const QString &country) const {
@@ -110,7 +242,10 @@ namespace Subscription {
             enabled = true;
         };
         compile(options.name_filter, nameFilter, hasNameFilter, QCoreApplication::translate("Validation", "Keep only matching"));
-        compile(options.name_exclude, nameExclude, hasNameExclude, QCoreApplication::translate("Validation", "Remove matching"));
+
+        QStringList excludeProblems;
+        excludeRules = CompileExcludeRules(options.name_exclude, &excludeProblems);
+        problems += excludeProblems;
 
         for (const auto &id : options.type_exclude) {
             bool known = false;
@@ -131,10 +266,12 @@ namespace Subscription {
 
     ImportFilter::Verdict ImportFilter::judge(Configs::Profile &ent, const QString &country) const {
         if (excludedTypes.contains(ent.type)) return Verdict::Type;
-        if (hasNameFilter || hasNameExclude) {
+        for (const auto &rule : excludeRules) {
+            if (profileMatchesExclude(ent, rule)) return Verdict::Name;
+        }
+        if (hasNameFilter) {
             const auto name = ent.outbound != nullptr ? ent.outbound->DisplayName() : ent.name;
-            if (hasNameExclude && nameExclude.match(name).hasMatch()) return Verdict::Name;
-            if (hasNameFilter && !nameFilter.match(name).hasMatch()) return Verdict::Name;
+            if (!nameFilter.match(name).hasMatch()) return Verdict::Name;
         }
         if (!rules.accepts(country)) return Verdict::Country;
         return Verdict::Keep;
