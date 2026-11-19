@@ -1,2 +1,559 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- See local artifacts; full UI will be completed if truncated -->
+<ui version="4.0">
+ <class>DialogEditGroupAdvanced</class>
+ <widget class="QDialog" name="DialogEditGroupAdvanced">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>460</width>
+    <height>621</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Advanced Group Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QScrollArea" name="scroll">
+     <property name="frameShape">
+      <enum>QFrame::Shape::NoFrame</enum>
+     </property>
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="scroll_content">
+      <layout class="QVBoxLayout" name="content_layout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="endpoint_box">
+         <property name="title">
+          <string>Server Address</string>
+         </property>
+         <layout class="QVBoxLayout" name="endpoint_layout">
+          <item>
+           <layout class="QHBoxLayout" name="endpoint_row" stretch="0,1,1,0">
+            <item>
+             <widget class="QComboBox" name="endpoint_mode"/>
+            </item>
+            <item>
+             <widget class="MyLineEdit" name="endpoint_address">
+              <property name="placeholderText">
+               <string>Host or IP address</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="endpoint_list"/>
+            </item>
+            <item>
+             <spacer name="endpoint_spacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="endpoint_hint">
+            <property name="textFormat">
+             <enum>Qt::TextFormat::PlainText</enum>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="colorRole" stdset="0">
+             <string notr="true">muted</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="request_box">
+         <property name="title">
+          <string>Request</string>
+         </property>
+         <layout class="QGridLayout" name="request_layout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="user_agent_l">
+            <property name="toolTip">
+             <string>Empty uses the User Agent from the Subscription settings.</string>
+            </property>
+            <property name="text">
+             <string>User Agent</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="MyLineEdit" name="user_agent"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="tls_version_l">
+            <property name="toolTip">
+             <string>TLS versions offered when fetching; TLS 1.2 often gets past blocks.</string>
+            </property>
+            <property name="text">
+             <string>TLS Version</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="tls_version">
+            <item>
+             <property name="text">
+              <string>Keep default</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Auto</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>TLS 1.2</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>TLS 1.3</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="http_version_l">
+            <property name="toolTip">
+             <string>HTTP version used to fetch this subscription; Auto prefers HTTP/2.</string>
+            </property>
+            <property name="text">
+             <string>HTTP Version</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="http_version">
+            <item>
+             <property name="text">
+              <string>Keep default</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Auto</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>HTTP/1.1</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="send_hwid_l">
+            <property name="toolTip">
+             <string>Send HWID, OS and device model headers when fetching this subscription.</string>
+            </property>
+            <property name="text">
+             <string>Send HWID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="send_hwid">
+            <item>
+             <property name="text">
+              <string>Keep default</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>On</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Off</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="hwid_l">
+            <property name="text">
+             <string>HWID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="MyLineEdit" name="hwid"/>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="hwid_os_l">
+            <property name="text">
+             <string>OS</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="MyLineEdit" name="hwid_os"/>
+          </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="hwid_os_version_l">
+            <property name="text">
+             <string>OS Version</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="MyLineEdit" name="hwid_os_version"/>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="hwid_model_l">
+            <property name="text">
+             <string>Device Model</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="MyLineEdit" name="hwid_model"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="filter_box">
+         <property name="title">
+          <string>Filter</string>
+         </property>
+         <layout class="QGridLayout" name="filter_layout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="name_filter_l">
+            <property name="toolTip">
+             <string>Keep only profiles whose name matches this regex (any case). Empty: keep all.</string>
+            </property>
+            <property name="text">
+             <string>Keep only matching</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="MyLineEdit" name="name_filter">
+            <property name="placeholderText">
+             <string>e.g. HK|Hong Kong</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="name_exclude_l">
+            <property name="toolTip">
+             <string>One pattern per line or | -separated. Matching profiles are not imported. Plain text, wildcards (* ?), re:regex or /regex/i; prefixes name: type: addr: any:. # comments. Flag emoji work as plain text.</string>
+            </property>
+            <property name="text">
+             <string>Server Filter</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="MyLineEdit" name="name_exclude">
+            <property name="placeholderText">
+             <string>FAST|*VIP*|re:^US-|type:vmess</string>
+            </property>
+            <property name="toolTip">
+             <string>One pattern per line or | -separated. Matching profiles are not imported. Plain text, wildcards (* ?), re:regex or /regex/i; prefixes name: type: addr: any:. # comments. Flag emoji work as plain text.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="type_exclude_l">
+            <property name="toolTip">
+             <string>Remove every profile of the ticked protocols.</string>
+            </property>
+            <property name="text">
+             <string>Remove types</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPushButton" name="type_exclude"/>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="country_filter_l">
+            <property name="toolTip">
+             <string>Exit countries to keep, e.g. HK,JP, or to remove, e.g. !RU.</string>
+            </property>
+            <property name="text">
+             <string>Countries</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="MyLineEdit" name="country_filter">
+            <property name="placeholderText">
+             <string>e.g. HK,JP or !RU</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="country_hint">
+            <property name="textFormat">
+             <enum>Qt::TextFormat::PlainText</enum>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="colorRole" stdset="0">
+             <string notr="true">muted</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="update_box">
+         <property name="title">
+          <string>Update</string>
+         </property>
+         <layout class="QVBoxLayout" name="update_layout">
+          <item>
+           <layout class="QGridLayout" name="update_schedule_layout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="update_interval_l">
+              <property name="toolTip">
+               <string>Minutes between automatic updates of this subscription.</string>
+              </property>
+              <property name="text">
+               <string>Update Interval</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="update_interval">
+              <property name="maximum">
+               <number>525600</number>
+              </property>
+              <property name="singleStep">
+               <number>30</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="server_interval_l">
+              <property name="toolTip">
+               <string>Use the update interval the subscription server sends, if any.</string>
+              </property>
+              <property name="text">
+               <string>Server Interval</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="server_interval">
+              <item>
+               <property name="text">
+                <string>Keep default</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Use</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Ignore</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="keep_working">
+            <property name="toolTip">
+             <string>Keep profiles that last tested OK when the subscription drops them.</string>
+            </property>
+            <property name="text">
+             <string>Keep working profiles</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="after_update_l">
+            <property name="text">
+             <string>After each update:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="remove_duplicates">
+            <property name="text">
+             <string>Remove duplicate profiles</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="remove_insecure">
+            <property name="text">
+             <string>Remove insecure profiles</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="remove_invalid">
+            <property name="toolTip">
+             <string>Remove profiles the core rejects.</string>
+            </property>
+            <property name="text">
+             <string>Remove invalid profiles</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="url_test">
+            <property name="toolTip">
+             <string>Test the group's profiles after each update.</string>
+            </property>
+            <property name="text">
+             <string>Run URL test</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="url_test_follow_ups">
+            <item>
+             <widget class="QCheckBox" name="remove_unavailable">
+              <property name="text">
+               <string>Remove unavailable profiles</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="sort_by_latency">
+              <property name="text">
+               <string>Sort by latency</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="bottom_spacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MyLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>include/ui/utils/MyLineEdit.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>endpoint_mode</tabstop>
+  <tabstop>endpoint_address</tabstop>
+  <tabstop>endpoint_list</tabstop>
+  <tabstop>user_agent</tabstop>
+  <tabstop>tls_version</tabstop>
+  <tabstop>http_version</tabstop>
+  <tabstop>send_hwid</tabstop>
+  <tabstop>hwid</tabstop>
+  <tabstop>hwid_os</tabstop>
+  <tabstop>hwid_os_version</tabstop>
+  <tabstop>hwid_model</tabstop>
+  <tabstop>name_filter</tabstop>
+  <tabstop>name_exclude</tabstop>
+  <tabstop>type_exclude</tabstop>
+  <tabstop>country_filter</tabstop>
+  <tabstop>update_interval</tabstop>
+  <tabstop>server_interval</tabstop>
+  <tabstop>keep_working</tabstop>
+  <tabstop>remove_duplicates</tabstop>
+  <tabstop>remove_insecure</tabstop>
+  <tabstop>remove_invalid</tabstop>
+  <tabstop>url_test</tabstop>
+  <tabstop>remove_unavailable</tabstop>
+  <tabstop>sort_by_latency</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>DialogEditGroupAdvanced</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>229</x>
+     <y>498</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>229</x>
+     <y>259</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>DialogEditGroupAdvanced</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>229</x>
+     <y>498</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>229</x>
+     <y>259</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
