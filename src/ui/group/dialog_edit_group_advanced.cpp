@@ -127,7 +127,7 @@ DialogEditGroupAdvanced::DialogEditGroupAdvanced(const Configs::SubscriptionOpti
     ui->remove_unavailable->setChecked(options.remove_unavailable);
     ui->sort_by_latency->setChecked(options.sort_by_latency);
     ui->name_filter->setText(options.name_filter);
-    ui->name_exclude->setPlainText(options.name_exclude);
+    ui->name_exclude->setText(options.name_exclude);
     ui->country_filter->setText(options.country_filter);
     loadTypeExclude();
 
@@ -324,7 +324,7 @@ void DialogEditGroupAdvanced::accept() {
     options.remove_unavailable = ui->remove_unavailable->isChecked();
     options.sort_by_latency = ui->sort_by_latency->isChecked();
     options.name_filter = ui->name_filter->text().trimmed();
-    options.name_exclude = ui->name_exclude->toPlainText().trimmed();
+    options.name_exclude = ui->name_exclude->text().trimmed();
     QStringList types;
     for (const auto *action : ui->type_exclude->menu()->actions()) {
         if (action->isChecked()) types << action->data().toString();
